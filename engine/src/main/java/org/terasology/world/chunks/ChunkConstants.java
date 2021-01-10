@@ -16,14 +16,19 @@
 
 package org.terasology.world.chunks;
 
+import org.joml.Vector3ic;
 import org.terasology.math.Region3i;
 import org.terasology.math.TeraMath;
 import org.terasology.math.geom.Vector3i;
 import org.terasology.module.sandbox.API;
 
+
 /**
+ * @deprecated This method is scheduled for removal in an upcoming version.
+ *             Use the JOML implementation instead: {@link org.terasology.world.chunks.Chunks}.
  */
 @API
+@Deprecated
 public final class ChunkConstants {
     public static final int SIZE_X = 32;
     public static final int SIZE_Y = 64;
@@ -44,7 +49,7 @@ public final class ChunkConstants {
 
     public static final Vector3i CHUNK_POWER = new Vector3i(POWER_X, POWER_Y, POWER_Z);
     public static final Vector3i CHUNK_SIZE = new Vector3i(SIZE_X, SIZE_Y, SIZE_Z);
-    public static final Vector3i INNER_CHUNK_POS_FILTER = new Vector3i(INNER_CHUNK_POS_FILTER_X, INNER_CHUNK_POS_FILTER_Y, INNER_CHUNK_POS_FILTER_Z);
+    public static final Vector3ic INNER_CHUNK_POS_FILTER = new org.joml.Vector3i(INNER_CHUNK_POS_FILTER_X, INNER_CHUNK_POS_FILTER_Y, INNER_CHUNK_POS_FILTER_Z);
     public static final Region3i CHUNK_REGION = Region3i.createFromMinAndSize(Vector3i.zero(), CHUNK_SIZE);
 
     public static final Vector3i LOCAL_REGION_EXTENTS = new Vector3i(1, 1, 1);

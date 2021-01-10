@@ -17,12 +17,13 @@ package org.terasology.world.propagation;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.joml.Vector3ic;
 import org.terasology.math.ChunkMath;
 import org.terasology.math.JomlUtil;
-import org.terasology.math.Region3i;
 import org.terasology.math.Side;
 import org.terasology.math.geom.Vector3i;
 import org.terasology.world.block.Block;
+import org.terasology.world.block.BlockRegion;
 import org.terasology.world.chunks.ChunkConstants;
 import org.terasology.world.chunks.LitChunk;
 
@@ -31,8 +32,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Batch propagator that works on a set of changed blocks
- * Works for a single given propagation ruleset
+ * Batch propagator that works on a set of changed blocks Works for a single given propagation ruleset
  */
 public class StandardBatchPropagator implements BatchPropagator {
 
@@ -119,7 +119,8 @@ public class StandardBatchPropagator implements BatchPropagator {
 
         /* Process propagation out to other blocks */
         for (Side side : Side.getAllSides()) {
-            PropagationComparison comparison = rules.comparePropagation(blockChange.getTo(), blockChange.getFrom(), side);
+            PropagationComparison comparison = rules.comparePropagation(blockChange.getTo(), blockChange.getFrom(),
+                    side);
 
             if (comparison.isRestricting() && existingValue > 0) {
                 /* If the propagation of the new value is going to be lower/reduced */
@@ -150,7 +151,7 @@ public class StandardBatchPropagator implements BatchPropagator {
     /**
      * Reset a position to only it's fixed values
      *
-     * @param pos      The position to reset
+     * @param pos The position to reset
      * @param oldValue The value present before reset
      */
     private void purge(Vector3i pos, byte oldValue) {
@@ -185,8 +186,7 @@ public class StandardBatchPropagator implements BatchPropagator {
     }
 
     /**
-     * Process all reducing propagation requests
-     * This is done from the largest value through the smallest.
+     * Process all reducing propagation requests This is done from the largest value through the smallest.
      */
     private void processReduction() {
         for (int depth = 0; depth < rules.getMaxValue(); depth++) {
@@ -205,8 +205,7 @@ public class StandardBatchPropagator implements BatchPropagator {
     }
 
     /**
-     * Process all increasing propagation requests
-     * This is done from the strongest through to the weakest.
+     * Process all increasing propagation requests This is done from the strongest through to the weakest.
      */
     private void processIncrease() {
         for (int depth = 0; depth < rules.getMaxValue() - 1; depth++) {
@@ -228,10 +227,10 @@ public class StandardBatchPropagator implements BatchPropagator {
     /**
      * Propagates a value from a position out into all adjacent blocks.
      * <p>
-     * If the value spreading into a block is larger than the current value there, set it and queue it for propagating again
-     * If the value is smaller than the current value, do nothing
+     * If the value spreading into a block is larger than the current value there, set it and queue it for propagating
+     * again If the value is smaller than the current value, do nothing
      *
-     * @param pos   The initial position
+     * @param pos The initial position
      * @param value The value to propagate
      */
     private void push(Vector3i pos, byte value) {
@@ -255,13 +254,12 @@ public class StandardBatchPropagator implements BatchPropagator {
     }
 
     /**
-     * Set the value at a position to a new value.
-     * This should be larger than the prior value
+     * Set the value at a position to a new value. This should be larger than the prior value
      * <p>
      * Queues up this new higher value to be propagated out
      *
      * @param position The position to set at
-     * @param value    The value to set the position to
+     * @param value The value to set the position to
      */
     private void increase(Vector3i position, byte value) {
         world.setValueAt(position, value);
@@ -281,11 +279,10 @@ public class StandardBatchPropagator implements BatchPropagator {
     }
 
     /**
-     * Queues up a propagation from a given position.
-     * Propagation is placed into a queue for the given level.
+     * Queues up a propagation from a given position. Propagation is placed into a queue for the given level.
      *
      * @param position The position to propagate form
-     * @param value    The value to propagate out
+     * @param value The value to propagate out
      */
     private void queueSpreadValue(Vector3i position, byte value) {
         if (value > 1) {
@@ -306,16 +303,18 @@ public class StandardBatchPropagator implements BatchPropagator {
     public void propagateBetween(LitChunk chunk, LitChunk adjChunk, Side side, boolean propagateExternal) {
         IndexProvider indexProvider = createIndexProvider(side);
 
-        Region3i edgeRegion = ChunkMath.getEdgeRegion(Region3i.createFromMinAndSize(Vector3i.zero(), ChunkConstants.CHUNK_SIZE), side);
+        BlockRegion edgeRegion = new BlockRegion(0, 0, 0)
+                .setSize(ChunkConstants.SIZE_X, ChunkConstants.SIZE_Y, ChunkConstants.SIZE_Z);
+        ChunkMath.getEdgeRegion(edgeRegion, side, edgeRegion);
 
-        int edgeSize = edgeRegion.size().x * edgeRegion.size().y * edgeRegion.size().z;
-        int[] depth = new int[edgeSize];
+        int[] depth = new int[edgeRegion.volume()];
 
         propagateSide(chunk, adjChunk, side, indexProvider, edgeRegion, depth);
         propagateDepth(adjChunk, side, propagateExternal, indexProvider, edgeRegion, depth);
     }
 
-    private void propagateDepth(LitChunk adjChunk, Side side, boolean propagateExternal, IndexProvider indexProvider, Region3i edgeRegion, int[] depths) {
+    private void propagateDepth(LitChunk adjChunk, Side side, boolean propagateExternal, IndexProvider indexProvider,
+                                BlockRegion edgeRegion, int[] depths) {
         Vector3i adjPos = new Vector3i();
 
         int[] adjDepth = new int[depths.length];
@@ -334,13 +333,13 @@ public class StandardBatchPropagator implements BatchPropagator {
             }
         }
 
-        for (Vector3i pos : edgeRegion) {
-            int depthIndex = indexProvider.getIndexFor(pos);
+        for (Vector3ic pos : edgeRegion) {
+            int depthIndex = indexProvider.getIndexFor(JomlUtil.from(pos));
             int adjacentDepth = adjDepth[depthIndex];
             for (int i = adjacentDepth; i < depths[depthIndex]; ++i) {
                 adjPos.set(side.getVector3i());
                 adjPos.mul(i + 1);
-                adjPos.add(pos);
+                adjPos.add(JomlUtil.from(pos));
                 adjPos.add(chunkEdgeDeltas.get(side));
                 byte value = rules.getValue(adjChunk, adjPos);
                 if (value > 1) {
@@ -350,7 +349,8 @@ public class StandardBatchPropagator implements BatchPropagator {
         }
     }
 
-    private void propagateSide(LitChunk chunk, LitChunk adjChunk, Side side, IndexProvider indexProvider, Region3i edgeRegion, int[] depths) {
+    private void propagateSide(LitChunk chunk, LitChunk adjChunk, Side side, IndexProvider indexProvider,
+                               BlockRegion edgeRegion, int[] depths) {
         Vector3i adjPos = new Vector3i();
         for (int x = edgeRegion.minX(); x <= edgeRegion.maxX(); ++x) {
             for (int y = edgeRegion.minY(); y <= edgeRegion.maxY(); ++y) {
